@@ -1,4 +1,4 @@
-import { db } from 'C:\\Users\\mizuk\\OneDrive\\ドキュメント\\tizu\\festival-stall-map\\lib\\firebase.js';
+import { db } from '../../lib/firebase';
 import { collection, addDoc } from 'firebase/firestore';
 
 export default async function handler(req, res) {

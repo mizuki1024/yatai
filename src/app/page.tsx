@@ -1,7 +1,8 @@
 // pages/index.js
 
 
-import AddStallForm from 'C:\\Users\\mizuk\\OneDrive\\ドキュメント\\tizu\\festival-stall-map\\components\\AddStallForm.js';
+import AddStallForm from '../../components/AddStallForm';
+
 
 export default function Home() {
   return (
