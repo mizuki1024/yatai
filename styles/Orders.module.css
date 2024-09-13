@@ -1,0 +1,121 @@
+.container {
+    font-family: Arial, sans-serif;
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 20px;
+    background-color: #ffffff;
+  }
+  
+  .title {
+    font-size: 24px;
+    margin-bottom: 20px;
+    text-align: center;
+  }
+  
+  .orderList {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .orderItem {
+    display: flex;
+    flex-direction: column;
+    padding: 15px;
+    margin-bottom: 15px;
+    background-color: #f9f9f9;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+  
+  .userInfo {
+    display: flex;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  
+  .profilePic {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 10px;
+  }
+  
+  .userDetails {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .userName {
+    font-size: 18px;
+    font-weight: bold;
+  }
+  
+  .timeLog {
+    font-size: 14px;
+    color: #888;
+  }
+  
+  .orderDetails {
+    font-size: 16px;
+    color: #333;
+  }
+  
+  /* スマートフォン向けのメディアクエリ */
+  @media (max-width: 480px) {
+    .container {
+      padding: 10px 15px;
+    }
+  
+    .title {
+      font-size: 20px;
+    }
+  
+    .orderItem {
+      padding: 10px;
+    }
+  
+    .profilePic {
+      width: 30px;
+      height: 30px;
+    }
+  
+    .userName {
+      font-size: 16px;
+    }
+  
+    .timeLog {
+      font-size: 12px;
+    }
+  
+    .orderDetails {
+      font-size: 14px;
+    }
+  }
+  
+  /* Navigation Styles */
+  .navigation {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid #ddd;
+    background-color: #f9f9f9;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  
+  .navigation button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .navigation .active {
+    font-weight: bold;
+    color: black;
+  }
+  

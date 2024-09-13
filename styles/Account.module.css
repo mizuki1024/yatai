@@ -1,0 +1,110 @@
+.container {
+    font-family: Arial, sans-serif;
+    max-width: 100%;
+    margin: 0;
+    padding: 10px 20px;
+    background-color: #ffffff;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .storeImage {
+    width: 100%;
+    max-width: 300px;
+    height: auto;
+    border-radius: 10px;
+    margin-bottom: 15px;
+  }
+  
+  .description {
+    font-size: 16px;
+    margin-bottom: 10px;
+  }
+  
+  .rating {
+    font-size: 18px;
+    color: #ffcc00;
+    margin-bottom: 20px;
+  }
+  
+  .reviews {
+    margin-bottom: 20px;
+  }
+  
+  .reviewItem {
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 10px;
+    margin-bottom: 10px;
+  }
+  
+  .menu {
+    margin-bottom: 20px;
+  }
+  
+  .dishes {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-around;
+  }
+  
+  .dishItem {
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  
+  .dishImage {
+    width: 100%;
+    max-width: 150px;
+    height: auto;
+    border-radius: 10px;
+  }
+  
+  .navigation {
+    display: flex;
+    justify-content: space-around;
+    padding: 10px 0;
+    border-top: 1px solid #ddd;
+    background-color: #f9f9f9;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+  }
+  
+  .navigation button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 10px;
+    font-size: 14px;
+    color: #555;
+  }
+  
+  .navigation .active {
+    font-weight: bold;
+    color: black;
+  }
+  
+  /* スマートフォン向けのメディアクエリ */
+  @media (max-width: 480px) {
+    .container {
+      padding: 10px 15px;
+    }
+  
+    .storeImage {
+      max-width: 100%;
+    }
+  
+    .dishImage {
+      max-width: 120px;
+    }
+  
+    .dishItem {
+      width: 45%;
+    }
+  }
+  
