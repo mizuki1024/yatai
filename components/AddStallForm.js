@@ -5,6 +5,7 @@ import { db } from '../lib/firebase';
 import { collection, addDoc, onSnapshot, updateDoc, doc } from "firebase/firestore";
 import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
 import ReservationModal from "./ReservationModal";  // モーダルコンポーネントをインポート
+import Link from 'next/link';
 
 const mapContainerStyle = {
   width: "100%",
@@ -127,10 +128,18 @@ export default function AddStallForm() {
       {/* 固定下部ナビゲーションバー */}
       <footer className="app-footer">
         <div className="nav-bar">
-          <a href="/">Home</a>
-          <a href="/orders">Orders</a>
-          <a href="/promotions">Promotions</a>
-          <a href="/account">Account</a>
+          <Link href="/">
+            <a>Home</a>
+          </Link>
+          <Link href="/orders">
+            <a>Orders</a>
+          </Link>
+          <Link href="/promotions">
+            <a>Promotions</a>
+          </Link>
+          <Link href="/account">
+            <a>Account</a>
+          </Link>
         </div>
       </footer>
 
