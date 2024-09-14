@@ -129,16 +129,16 @@ export default function AddStallForm() {
       <footer className="app-footer">
         <div className="nav-bar">
           <Link href="/">
-            <a>Home</a>
+            Home
           </Link>
           <Link href="/orders">
-            <a>Orders</a>
+            Orders
           </Link>
           <Link href="/promotions">
-            <a>Promotions</a>
+            Promotions
           </Link>
           <Link href="/account">
-            <a>Account</a>
+            Account
           </Link>
         </div>
       </footer>
