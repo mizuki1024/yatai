@@ -17,16 +17,9 @@ export default function ReservationModal({ stall, onClose, onComplete }) {
 
   return (
     <div style={modalStyle}>
-      <h2>出店予約</h2>
       <form onSubmit={handleSubmit}>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          placeholder="出店名"
-          required
-        />
         <button type="submit">予約する</button>
+        
         <button type="button" onClick={onClose}>キャンセル</button>
       </form>
     </div>
