@@ -16,6 +16,7 @@
     "next": "^14.2.11",
     "react": "^18",
     "react-dom": "^18",
+    "react-firebase-hooks": "^5.1.1",
     "react-hook-form": "^7.53.0",
     "styled-components": "^6.1.13",
     "yup": "^1.4.0"

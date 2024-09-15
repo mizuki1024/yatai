@@ -1,50 +1,67 @@
-"use client"; // クライアントサイドで実行されることを明示
+"use client";  // これを最初に追加
 
 import React, { useState, useCallback, useEffect } from "react";
 import { db } from '../lib/firebase';
-import { collection, addDoc, onSnapshot, updateDoc, doc } from "firebase/firestore";
-import { getAuth, onAuthStateChanged } from "firebase/auth"; // Firebase Authenticationのインポート
+import { collection, addDoc, onSnapshot, updateDoc, doc, getDoc } from "firebase/firestore";
+import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api";
 import ReservationModal from "./ReservationModal";  
 import Link from 'next/link';
 
+// 地図のスタイルを定義
 const mapContainerStyle = {
   width: "100%",
-  height: "100vh", // 地図の高さを設定
-};
-
-const center = {
-  lat: 26.2124, // 初期の中心座標 (例: 沖縄)
-  lng: 127.6809,
+  height: "100vh"
 };
 
 export default function AddStallForm() {
   const { isLoaded, loadError } = useLoadScript({
-    googleMapsApiKey: "あなたのAPIキー", // 自分のAPIキーに置き換えてください
+    googleMapsApiKey: "AIzaSyCHPcRdQg0ZxO0TISUyP9tMCvxupmZvtkc", // 自分のAPIキーに置き換えてください
   });
 
   const [name, setName] = useState("");
-  const [selectedLocation, setSelectedLocation] = useState(null); // 選択された位置を管理
-  const [stalls, setStalls] = useState([]); // Firestoreから取得した屋台の位置を保存
-  const [selectedStall, setSelectedStall] = useState(null); // モーダルで表示するための選択された屋台
-  const [selectedReservation, setSelectedReservation] = useState(null); // 選択された予約情報を管理
-  const [user, setUser] = useState(null); // 認証されたユーザー情報を管理
+  const [selectedLocation, setSelectedLocation] = useState(null);
+  const [stalls, setStalls] = useState([]);
+  const [selectedStall, setSelectedStall] = useState(null);
+  const [selectedReservation, setSelectedReservation] = useState(null);
+  const [user, setUser] = useState(null);
+  const [review, setReview] = useState("");
+  const [currentPosition, setCurrentPosition] = useState(null); // 現在地を保存
 
-  // Firebase Authenticationを使用して現在のユーザーを取得
   useEffect(() => {
     const auth = getAuth();
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       if (currentUser) {
-        setUser(currentUser); // ログインしているユーザーを設定
+        setUser(currentUser);
       } else {
-        setUser(null); // ユーザーがログインしていない場合はnull
+        setUser(null);
       }
     });
 
     return () => unsubscribe();
   }, []);
 
-  // Firestoreからリアルタイムでデータを取得
+  useEffect(() => {
+    // 現在地を取得して設定
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setCurrentPosition({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude,
+          });
+        },
+        (error) => {
+          console.error("Error getting current location:", error);
+          setCurrentPosition({ lat: 26.2124, lng: 127.6809 }); // デフォルトの座標（例: 沖縄）
+        }
+      );
+    } else {
+      console.error("Geolocation is not supported by this browser.");
+      setCurrentPosition({ lat: 26.2124, lng: 127.6809 }); // デフォルトの座標
+    }
+  }, []);
+
   const fetchStalls = useCallback(() => {
     const unsubscribe = onSnapshot(collection(db, "stalls"), (snapshot) => {
       const stallData = snapshot.docs.map((doc) => ({
@@ -54,7 +71,6 @@ export default function AddStallForm() {
       setStalls(stallData);
     });
 
-    // クリーンアップ
     return () => unsubscribe();
   }, []);
 
@@ -69,9 +85,9 @@ export default function AddStallForm() {
   }, []);
 
   const handleMarkerClick = (stall) => {
-    if (!stall.confirmed) { // confirmed が false の場合は予約モーダルを表示
+    if (!stall.confirmed) {
       setSelectedStall(stall);
-    } else { // confirmed が true の場合は予約情報を表示
+    } else {
       setSelectedReservation(stall);
     }
   };
@@ -81,23 +97,55 @@ export default function AddStallForm() {
       alert("予約を行うにはログインが必要です。");
       return;
     }
-
-    // Firestore に予約情報を登録する
+  
+    // Firestoreからユーザーのプロフィール情報を取得
+    const userRef = doc(db, "users", user.uid);
+    const userProfileSnap = await getDoc(userRef);
+  
+    if (!userProfileSnap.exists()) {
+      alert("ユーザープロフィール情報が見つかりません。プロフィールを設定してください。");
+      return;
+    }
+  
+    const userProfile = userProfileSnap.data();
+  
+    // 予約情報にユーザープロフィール情報を反映してFirestoreに保存
     const stallRef = doc(db, "stalls", stall.id);
     await updateDoc(stallRef, {
       confirmed: true,
-      reservedBy: user.uid, // 予約したユーザーのID
-      shopName: user.displayName, // Firebase Authenticationのディスプレイネーム
-      description: "店舗の紹介文をここに入力", // 店の紹介文
-      menu: [ // 料理とその値段を実際のユーザーデータに合わせて取得
-        { dish: "醤油ラーメン", price: 700 },
-        { dish: "味噌ラーメン", price: 800 }
-      ],
-      reviews: [] // 初期レビューは空で設定
+      reservedBy: user.uid,
+      shopName: userProfile.shopName || user.displayName,  // プロフィール情報から店舗名を取得
+      description: userProfile.description || "店舗の紹介文を入力してください。",
+      menu: userProfile.menu || [],  // プロフィール情報にメニューがあれば反映
+      reviews: []  // 初期レビューは空で設定
     });
-
+  
     fetchStalls(); // 予約完了後にデータを再取得
     setSelectedStall(null); // モーダルを閉じる
+  };
+  
+  const handleReviewSubmit = async () => {
+    if (!user || !selectedReservation) {
+      alert("レビューを投稿するにはログインしている必要があります。");
+      return;
+    }
+
+    const updatedReviews = [
+      ...(selectedReservation.reviews || []),
+      { user: user.displayName || '匿名ユーザー', review }
+    ];
+
+    const stallRef = doc(db, "stalls", selectedReservation.id);
+    await updateDoc(stallRef, {
+      reviews: updatedReviews,
+    });
+
+    setSelectedReservation((prev) => ({
+      ...prev,
+      reviews: updatedReviews,
+    }));
+
+    setReview(""); // フォームをリセット
   };
 
   const handleSubmit = async (e) => {
@@ -116,11 +164,11 @@ export default function AddStallForm() {
 
     setSelectedLocation(null);
     setName("");
-    fetchStalls(); // 新しいデータを追加後に再取得
+    fetchStalls();
   };
 
   if (loadError) return <div>Error loading maps</div>;
-  if (!isLoaded) return <div>Loading Maps...</div>;
+  if (!isLoaded || !currentPosition) return <div>Loading Maps...</div>;
 
   return (
     <div className="container">
@@ -130,8 +178,8 @@ export default function AddStallForm() {
       <GoogleMap
         mapContainerStyle={mapContainerStyle}
         zoom={12}
-        center={center}
-        onClick={handleMapClick} // 地図クリックイベントハンドラを設定
+        center={currentPosition}
+        onClick={handleMapClick}
       >
         {stalls.map((stall) => (
           <Marker
@@ -139,15 +187,13 @@ export default function AddStallForm() {
             position={{ lat: stall.lat, lng: stall.lng }}
             icon={{
               url: stall.confirmed ? "/red-pin.png" : "/white-pin.png",
-              scaledSize: new window.google.maps.Size(40, 40), // ピンのサイズを調整
+              scaledSize: isLoaded ? new window.google.maps.Size(40, 40) : null,
             }}
-            onClick={() => handleMarkerClick(stall)} // ピンをクリックした際の処理
+            onClick={() => handleMarkerClick(stall)}
           />
         ))}
         {selectedLocation && (
-          <Marker
-            position={selectedLocation} // 選択された位置にピンを表示
-          />
+          <Marker position={selectedLocation} />
         )}
       </GoogleMap>
 
@@ -173,6 +219,24 @@ export default function AddStallForm() {
                 <li key={index}>{item.dish} - {item.price}円</li>
               ))}
             </ul>
+            <h3>レビュー</h3>
+            <ul>
+              {selectedReservation.reviews && selectedReservation.reviews.map((rev, index) => (
+                <li key={index}><strong>{rev.user}:</strong> {rev.review}</li>
+              ))}
+            </ul>
+            {user ? (
+              <>
+                <textarea
+                  value={review}
+                  onChange={(e) => setReview(e.target.value)}
+                  placeholder="レビューを入力"
+                />
+                <button onClick={handleReviewSubmit}>レビューを投稿</button>
+              </>
+            ) : (
+              <p>レビューを投稿するにはログインしてください。</p>
+            )}
             <button onClick={() => setSelectedReservation(null)}>閉じる</button>
           </div>
         </div>
@@ -202,7 +266,7 @@ export default function AddStallForm() {
           display: flex;
           flex-direction: column;
           justify-content: space-between;
-          overflow-y: auto; /* スクロール可能にする */
+          overflow-y: auto;
         }
 
         .form {
@@ -219,8 +283,8 @@ export default function AddStallForm() {
         }
 
         .nav-bar {
-          display: flex; /* 横並びにする */
-          justify-content: space-around; /* アイテムを等間隔に配置 */
+          display: flex;
+          justify-content: space-around;
           width: 100%;
         }
 
@@ -230,7 +294,7 @@ export default function AddStallForm() {
           padding: 10px;
           font-size: 16px;
           text-align: center;
-          flex: 1; /* 各リンクを均等に広げる */
+          flex: 1;
         }
 
         .nav-bar a.active {
@@ -268,8 +332,18 @@ export default function AddStallForm() {
           margin-bottom: 10px;
         }
 
+        .modal-content textarea {
+          width: 100%;
+          height: 80px;
+          margin-top: 10px;
+          margin-bottom: 10px;
+          padding: 10px;
+          border-radius: 5px;
+          border: 1px solid #ccc;
+        }
+
         .modal-content button {
-          margin-top: 20px;
+          margin-top: 10px;
           padding: 10px 20px;
           background-color: #007bff;
           color: white;
