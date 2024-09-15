@@ -1,15 +1,15 @@
-// pages/index.js
+// src/app/page.tsx
+"use client"; // クライアントコンポーネントとしてマーク
 
-
-import AddStallForm from '../../components/AddStallForm';
-
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation'; // next/router ではなく next/navigation を使用
 
 export default function Home() {
-  return (
-    <div>
-      <h1>祭りの出店マップ</h1>
-      
-      <AddStallForm />
-    </div>
-  );
+  const router = useRouter();
+
+  useEffect(() => {
+    router.push('/select-user-type');
+  }, [router]);
+
+  return null; // Render nothing as we are redirecting
 }

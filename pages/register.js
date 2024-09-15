@@ -1,232 +1,200 @@
-
-import { useForm } from "react-hook-form";
-import * as yup from "yup";
-import { yupResolver } from "@hookform/resolvers/yup";
-import styled from 'styled-components';
+// pages/register.js
+import { useState } from "react";
 import { useRouter } from 'next/router';
+import { auth, db, storage } from "../lib/firebase";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { doc, setDoc } from "firebase/firestore";
+import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import styled from "styled-components";
 
-// バリデーションスキーマを定義
-const schema = yup.object().shape({
-  name: yup.string().required("名前は必須です"),
-  email: yup.string().email("有効なメールアドレスを入力してください").required("メールアドレスは必須です"),
-  password: yup.string().min(6, "パスワードは最低6文字です").required("パスワードは必須です"),
-  confirmPassword: yup.string()
-    .oneOf([yup.ref('password'), null], "パスワードが一致しません")
-    .required("パスワード確認は必須です"),
-  userType: yup.string().required("ユーザータイプを選択してください"),
-  eventName: yup.string().when('userType', {
-    is: 'organizer',
-    then: yup.string().required("イベント名は必須です"),
-  }),
-  storeName: yup.string().when('userType', {
-    is: 'stall',
-    then: yup.string().required("出店名は必須です"),
-  }),
-  topIcon: yup.mixed().required("トップ画面のアイコンをアップロードしてください"),
-  homeIcon: yup.mixed().required("ホーム画面のアイコンをアップロードしてください"),
-});
-
-export default function Register() {
-  const { register, handleSubmit, watch, formState: { errors } } = useForm({
-    resolver: yupResolver(schema)
-  });
-  const router = useRouter();  // ルーターを使用してページ遷移を制御
-  const userType = watch("userType");  // フォームから直接ユーザータイプを監視
-
-  const onSubmit = async (data) => {
-    try {
-      const formData = new FormData();
-      formData.append("name", data.name);
-      formData.append("email", data.email);
-      formData.append("password", data.password);
-      formData.append("userType", data.userType);
-      if (data.eventName) formData.append("eventName", data.eventName);
-      if (data.storeName) formData.append("storeName", data.storeName);
-      formData.append("topIcon", data.topIcon[0]);
-      formData.append("homeIcon", data.homeIcon[0]);
-
-      const response = await fetch('/api/register', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        console.log("登録が完了しました！");
-        if (userType === 'participant') {
-          router.push('/account_sanka');  // 参加者の場合、Accountページにリダイレクト
-        } else {
-          // 他のユーザータイプに応じて異なるページに遷移させることも可能
-        }
-      } else {
-        console.error("登録に失敗しました");
-      }
-    } catch (error) {
-      console.error("エラーが発生しました", error);
-    }
-  };
-
-  return (
-    <FormContainer>
-      {userType === "" ? (
-        <SelectUserType setUserType={setUserType} />
-      ) : (
-        <Form onSubmit={handleSubmit(onSubmit)} encType="multipart/form-data">
-          <InputContainer>
-            <Label>名前</Label>
-            <Input {...register("name")} />
-            <Error>{errors.name?.message}</Error>
-          </InputContainer>
-
-          <InputContainer>
-            <Label>メールアドレス</Label>
-            <Input {...register("email")} />
-            <Error>{errors.email?.message}</Error>
-          </InputContainer>
-
-          <InputContainer>
-            <Label>パスワード</Label>
-            <Input type="password" {...register("password")} />
-            <Error>{errors.password?.message}</Error>
-          </InputContainer>
-
-          <InputContainer>
-            <Label>パスワード確認</Label>
-            <Input type="password" {...register("confirmPassword")} />
-            <Error>{errors.confirmPassword?.message}</Error>
-          </InputContainer>
-
-          {userType === "organizer" && (
-            <InputContainer>
-              <Label>イベント名</Label>
-              <Input {...register("eventName")} />
-              <Error>{errors.eventName?.message}</Error>
-            </InputContainer>
-          )}
-
-          {userType === "stall" && (
-            <InputContainer>
-              <Label>出店名</Label>
-              <Input {...register("storeName")} />
-              <Error>{errors.storeName?.message()}</Error>
-            </InputContainer>
-          )}
-
-          <InputContainer>
-            <Label>トップ画面のアイコン</Label>
-            <Input type="file" {...register("topIcon")} />
-            <Error>{errors.topIcon?.message}</Error>
-          </InputContainer>
-
-          <InputContainer>
-            <Label>ホーム画面のアイコン</Label>
-            <Input type="file" {...register("homeIcon")} />
-            <Error>{errors.homeIcon?.message}</Error>
-          </InputContainer>
-
-          <SubmitButton type="submit">登録</SubmitButton>
-        </Form>
-      )}
-    </FormContainer>
-  );
-}
-
-// ユーザータイプ選択画面
-function SelectUserType({ setUserType }) {
-  return (
-    <Form>
-      <InputContainer>
-        <Label>ユーザータイプを選択してください</Label>
-        <Select onChange={(e) => setUserType(e.target.value)}>
-          <option value="">選択してください</option>
-          <option value="organizer">主催者</option>
-          <option value="stall">出店者</option>
-          <option value="participant">参加者</option>
-        </Select>
-      </InputContainer>
-    </Form>
-  );
-}
-
-// スタイル設定
-const FormContainer = styled.div`
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background-color: #f0f0f5;
+const Container = styled.div`
+  max-width: 600px;
+  margin: 0 auto;
   padding: 20px;
-  overflow-y: auto;
-`;
-
-const Form = styled.form`
-  background-color: white;
-  padding: 20px;
+  background-color: #f9f9f9;
   border-radius: 10px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
-  width: 100%;
-  max-height: 80vh;
-  overflow-y: auto;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
 `;
 
-const InputContainer = styled.div`
-  margin-bottom: 15px;
-`;
-
-const Label = styled.label`
-  display: block;
-  margin-bottom: 5px;
-  font-size: 14px;
-  color: #555;
+const Title = styled.h1`
+  text-align: center;
+  color: #333;
 `;
 
 const Input = styled.input`
   width: 100%;
   padding: 10px;
-  font-size: 16px;
+  margin: 10px 0;
   border-radius: 5px;
   border: 1px solid #ccc;
-  outline: none;
-  transition: border-color 0.3s;
-
-  &:focus {
-    border-color: #007bff;
-  }
+  font-size: 16px;
 `;
 
-const Select = styled.select`
+const Textarea = styled.textarea`
   width: 100%;
   padding: 10px;
-  font-size: 16px;
+  margin: 10px 0;
   border-radius: 5px;
   border: 1px solid #ccc;
-  outline: none;
-  transition: border-color 0.3s;
-
-  &:focus {
-    border-color: #007bff;
-  }
-`;
-
-const Error = styled.p`
-  margin-top: 5px;
-  font-size: 12px;
-  color: #ff6b6b;
-`;
-
-const SubmitButton = styled.button`
-  width: 100%;
-  padding: 10px 15px;
   font-size: 16px;
-  color: white;
-  background-color: #007bff;
+  min-height: 100px;
+`;
+
+const Button = styled.button`
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
   border: none;
   border-radius: 5px;
+  background-color: #0070f3;
+  color: white;
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.3s;
-
   &:hover {
-    background-color: #0056b3;
+    background-color: #005bb5;
   }
 `;
+
+const DishContainer = styled.div`
+  margin: 20px 0;
+  padding: 15px;
+  background-color: #fff;
+  border-radius: 5px;
+  box-shadow: 0px 0px 5px rgba(0, 0, 0, 0.1);
+`;
+
+const AddDishButton = styled(Button)`
+  background-color: #28a745;
+  &:hover {
+    background-color: #218838;
+  }
+`;
+
+export default function Register() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
+  const [profile, setProfile] = useState({
+    storeName: "",
+    profilePicture: null,
+    dishes: [{ dishName: "", dishPrice: "", dishPicture: null }],
+    storeIntroduction: ""
+  });
+
+  const router = useRouter();
+
+  const handleImageUpload = async (image) => {
+    if (!image) return null;
+    const imageRef = ref(storage, `images/${image.name}`);
+    const snapshot = await uploadBytes(imageRef, image);
+    const downloadURL = await getDownloadURL(snapshot.ref);
+    return downloadURL;
+  };
+
+  const handleRegister = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const user = userCredential.user;
+
+      const profilePictureURL = profile.profilePicture ? await handleImageUpload(profile.profilePicture) : null;
+      const dishesWithUrls = await Promise.all(
+        profile.dishes.map(async (dish) => {
+          const dishPictureURL = dish.dishPicture ? await handleImageUpload(dish.dishPicture) : null;
+          return { ...dish, dishPicture: dishPictureURL };
+        })
+      );
+
+      await setDoc(doc(db, "users", user.uid), {
+        email: user.email,
+        name: name,
+        profile: {
+          storeName: profile.storeName,
+          profilePicture: profilePictureURL,
+          dishes: dishesWithUrls,
+          storeIntroduction: profile.storeIntroduction
+        }
+      });
+
+      router.push(`/profile?uid=${user.uid}`);
+      
+    } catch (error) {
+      console.error("Error registering:", error);
+      alert("Error registering");
+    }
+  };
+
+  const addDishField = () => {
+    setProfile({
+      ...profile,
+      dishes: [...profile.dishes, { dishName: "", dishPrice: "", dishPicture: null }]
+    });
+  };
+
+  const handleDishChange = (index, field, value) => {
+    const updatedDishes = [...profile.dishes];
+    updatedDishes[index][field] = value;
+    setProfile({ ...profile, dishes: updatedDishes });
+  };
+
+  return (
+    <Container>
+      <Title>Register</Title>
+      <Input
+        type="email"
+        placeholder="Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      <Input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+      <Input
+        type="text"
+        placeholder="Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      <Input
+        type="text"
+        placeholder="Store Name"
+        value={profile.storeName}
+        onChange={(e) => setProfile({ ...profile, storeName: e.target.value })}
+      />
+      <Input
+        type="file"
+        onChange={(e) => setProfile({ ...profile, profilePicture: e.target.files[0] })}
+      />
+      <Textarea
+        placeholder="Store Introduction"
+        value={profile.storeIntroduction}
+        onChange={(e) => setProfile({ ...profile, storeIntroduction: e.target.value })}
+      />
+      <h3>Dishes</h3>
+      {profile.dishes.map((dish, index) => (
+        <DishContainer key={index}>
+          <Input
+            type="text"
+            placeholder="Dish Name"
+            value={dish.dishName}
+            onChange={(e) => handleDishChange(index, 'dishName', e.target.value)}
+          />
+          <Input
+            type="text"
+            placeholder="Dish Price"
+            value={dish.dishPrice}
+            onChange={(e) => handleDishChange(index, 'dishPrice', e.target.value)}
+          />
+          <Input
+            type="file"
+            onChange={(e) => handleDishChange(index, 'dishPicture', e.target.files[0])}
+          />
+        </DishContainer>
+      ))}
+      <AddDishButton onClick={addDishField}>Add another dish</AddDishButton>
+      <Button onClick={handleRegister}>Register</Button>
+    </Container>
+  );
+}
